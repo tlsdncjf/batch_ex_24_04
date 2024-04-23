@@ -1,5 +1,9 @@
-package com.koreait.exam.batch_ex_24_04.job.productBackup;
+package com.koreait.exam.batch_ex_24_04.job.makeRebateOrderItem;
 
+import com.koreait.exam.batch_ex_24_04.app.order.entity.OrderItem;
+import com.koreait.exam.batch_ex_24_04.app.order.entity.RebateOrderItem;
+import com.koreait.exam.batch_ex_24_04.app.order.repository.OrderItemRepository;
+import com.koreait.exam.batch_ex_24_04.app.order.repository.RebateOrderItemRepository;
 import com.koreait.exam.batch_ex_24_04.app.product.entity.Product;
 import com.koreait.exam.batch_ex_24_04.app.product.entity.ProductBackup;
 import com.koreait.exam.batch_ex_24_04.app.product.repository.ProductBackupRepository;
@@ -28,43 +32,43 @@ import java.util.Collections;
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
-public class ProductBackupJobConfig {
+public class makeRebateOrderItemJobConfig {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
 
-    private final ProductRepository productRepository;
-    private final ProductBackupRepository productBackupRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final RebateOrderItemRepository rebateOrderItemRepository;
 
     @Bean
-    public Job productBackupJob(Step productBackupStep1, CommandLineRunner initData) throws Exception {
+    public Job makeRebateOrderItemJob(Step makeRebateOrderItemStep1, CommandLineRunner initData) throws Exception {
         initData.run();
 
-        return jobBuilderFactory.get("productBackupJob")
-                .start(productBackupStep1)
+        return jobBuilderFactory.get("makeRebateOrderItemJob")
+                .start(makeRebateOrderItemStep1)
                 .build();
     }
 
     @Bean
     @JobScope
-    public Step productBackupStep1(
-            ItemReader productReader,
-            ItemProcessor productToProductBackupProcessor,
-            ItemWriter productBackupWriter
+    public Step makeRebateOrderItemStep1(
+            ItemReader orderItemReader,
+            ItemProcessor orderItemToRebateOrderItemProcessor,
+            ItemWriter rebateOrderItemWriter
     ) {
-        return stepBuilderFactory.get("productBackupStep1")
-                .<Product, ProductBackup>chunk(100)
-                .reader(productReader)
-                .processor(productToProductBackupProcessor)
-                .writer(productBackupWriter)
+        return stepBuilderFactory.get("makeRebateOrderItemStep1")
+                .<OrderItem, RebateOrderItem>chunk(100)
+                .reader(orderItemReader)
+                .processor(orderItemToRebateOrderItemProcessor)
+                .writer(rebateOrderItemWriter)
                 .build();
     }
 
     @StepScope
     @Bean
-    public RepositoryItemReader<Product> productReader() {
-        return new RepositoryItemReaderBuilder<Product>()
-                .name("productReader")
-                .repository(productRepository)
+    public RepositoryItemReader<OrderItem> orderItemReader() {
+        return new RepositoryItemReaderBuilder<OrderItem>()
+                .name("orderItemReader")
+                .repository(orderItemRepository)
                 .methodName("findAll")
                 .pageSize(100)
                 .arguments(Arrays.asList())
@@ -74,21 +78,21 @@ public class ProductBackupJobConfig {
 
     @StepScope
     @Bean
-    public ItemProcessor<Product, ProductBackup> productToProductBackupProcessor() {
-        return product -> new ProductBackup(product);
+    public ItemProcessor<OrderItem, RebateOrderItem> orderItemToRebateOrderItemProcessor() {
+        return orderItem -> new RebateOrderItem(orderItem);
     }
 
     @StepScope
     @Bean
-    public ItemWriter<ProductBackup> ProductBackupWriter() {
+    public ItemWriter<RebateOrderItem> rebateOrderItemWriter() {
         return items -> items.forEach(item -> {
-            ProductBackup oldProductBackup = productBackupRepository.findByProductId(item.getProduct().getId()).orElse(null);
+            RebateOrderItem oldRebateOrderItem = rebateOrderItemRepository.findByOrderItemId(item.getOrderItem().getId()).orElse(null);
 
-            if (oldProductBackup != null) {
-                productBackupRepository.delete(oldProductBackup);
+            if (oldRebateOrderItem != null) {
+                rebateOrderItemRepository.delete(oldRebateOrderItem);
             }
 
-            productBackupRepository.save(item);
+            rebateOrderItemRepository.save(item);
         });
 
 
